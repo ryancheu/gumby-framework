@@ -52,6 +52,8 @@ After this line, you can add the Gumby JS plugins like this:
 	
 You have available the following plugins:
 
+	//= require ui/gumby.fittext
+	//= require ui/gumby.navbar
 	//= require ui/gumby.checkbox
 	//= require ui/gumby.fixed
 	//= require ui/gumby.radiobtn

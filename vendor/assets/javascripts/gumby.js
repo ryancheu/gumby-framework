@@ -22,39 +22,41 @@
   function Gumby() {
     this.$dom = $(document);
     this.isOldie = !!this.$dom.find('html').hasClass('oldie');
-    this.click = this.detectClickEvent();
+    this.click = 'click';
+    this.onReady = this.onOldie = this.onTouch = false;
     this.uiModules = {};
     this.inits = {};
-    this.onReady = false;
-    this.onOldie = false;
 
+    // check and set path with js/libs default
+    this.path = $('script[gumby-path]').attr('gumby-path') || 'js/libs';
+
+    // check and set breakpoint with 1024 default
+    this.breakpoint = Number($('script[gumby-breakpoint]').attr('gumby-breakpoint')) || 1024;
+  }
+
+  // initialize Gumby
+  Gumby.prototype.init = function() {
     var scope = this;
 
-    // when document is ready init
+    // call ready() code when dom is ready
     this.$dom.ready(function() {
+      // init UI modules
+      scope.initUIModules();
 
-      // call oldie callback if available
+      if(scope.onReady) {
+        scope.onReady();
+      }
+
+      // call oldie() callback if applicable
       if(scope.isOldie && scope.onOldie) {
         scope.onOldie();
       }
 
-      // init UI modules
-      scope.initUIModules();
-
-      // call ready callback if available
-      if(scope.onReady) {
-        scope.onReady();
+      // call touch() callback if applicable
+      if(Modernizr.touch && scope.onTouch) {
+        scope.onTouch();
       }
     });
-  }
-
-  // public helper - return debuggin object including uiModules object
-  Gumby.prototype.debug = function() {
-    return {
-      $dom: this.$dom,
-      isOldie: this.isOldie,
-      uiModules: this.uiModules
-    };
   };
 
   // public helper - set Gumby ready callback
@@ -71,6 +73,23 @@
     }
   };
 
+  // public helper - set touch callback
+  Gumby.prototype.touch = function(code) {
+    if(code && typeof code === 'function') {
+      this.onTouch = code;
+    }
+  };
+
+  // public helper - return debuggin object including uiModules object
+  Gumby.prototype.debug = function() {
+    return {
+      $dom: this.$dom,
+      isOldie: this.isOldie,
+      uiModules: this.uiModules,
+      click: this.click
+    };
+  };
+
   // grab attribute value, testing data- gumby- and no prefix
   Gumby.prototype.selectAttr = function() {
     var i = 0;
@@ -83,16 +102,16 @@
         gumbyAttr = 'gumby-'+arguments[i];
 
       // first test for data-attr
-      if(this.attr(dataAttr)) {
-        return this.attr(dataAttr);
+      if(this.is('['+dataAttr+']')) {
+        return this.attr(dataAttr) ? this.attr(dataAttr) : true;
 
       // next test for gumby-attr
-      } else if(this.attr(gumbyAttr)) {
-        return this.attr(gumbyAttr);
+      } else if(this.is('['+gumbyAttr+']')) {
+        return this.attr(gumbyAttr) ? this.attr(gumbyAttr) : true;
 
       // finally no prefix
-      } else if(this.attr(attr)) {
-        return this.attr(attr);
+      } else if(this.is('['+attr+']')) {
+        return this.attr(attr) ? this.attr(attr) : true;
       }
     }
 
@@ -106,9 +125,9 @@
   };
 
   // initialize a uiModule
-  Gumby.prototype.initialize = function(ref) {
+  Gumby.prototype.initialize = function(ref, all) {
     if(this.inits[ref] && typeof this.inits[ref] === 'function') {
-      this.inits[ref]();
+      this.inits[ref](all);
     }
   };
 
@@ -124,46 +143,6 @@
     for(x in this.uiModules) {
       this.uiModules[x].init();
     }
-  };
-
-  // use touchy events if available otherwise click
-  Gumby.prototype.detectClickEvent = function() {
-    if(Modernizr.touch) {
-      this.setupTapEvent();
-      return 'gumbyTap';
-    } else {
-      return 'click';
-    }
-  };
-
-  // set up gumbyTap jQuery.specialEvent
-  Gumby.prototype.setupTapEvent = function() {
-    $.event.special.gumbyTap = {
-      setup: function(data) {
-        $(this).bind('touchstart touchend touchmove', $.event.special.gumbyTap.handler);
-      },
-
-      teardown: function() {
-        $(this).unbind('touchstart touchend touchmove', $.event.special.gumbyTap.handler);
-      },
-
-      handler: function(event) {
-        var $this = $(this);
-        // touch start event so store ref to tap event starting
-        if(event.type === 'touchstart') {
-          $this.data('gumbyTouchStart', true);
-        // touchmove event so cancel tap event
-        } else if(event.type === 'touchmove') {
-          $this.data('gumbyTouchStart', false);
-        // touchend event so if tap event ref still present, we have a tap!
-        } else if($this.data('gumbyTouchStart')) {
-          $this.data('gumbyTouchStart', false);
-          event.type = "gumbyTap";
-          $this.click(function(e) { e.stopImmediatePropagation(); });
-          $.event.handle.apply(this, arguments);
-        }
-      }
-    };
   };
 
   window.Gumby = new Gumby();
