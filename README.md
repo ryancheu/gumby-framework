@@ -63,7 +63,9 @@ You have available the following plugins:
 	//= require ui/gumby.toggleswitch
 	//= require ui/jquery.validation
 
-
+After the Gumby JS plugins add the following line:
+        
+	//= require gumby.init
 
 ## Contributing
 
